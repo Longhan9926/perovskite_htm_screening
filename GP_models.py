@@ -3,7 +3,7 @@ import torch
 import gpytorch
 
 from torch.optim.lr_scheduler import StepLR
-from botorch import fit_gpytorch_model
+from botorch import fit_gpytorch_mll
 from botorch.models.gp_regression import SingleTaskGP, FixedNoiseGP
 from botorch.models.model_list_gp_regression import ModelListGP
 from gpytorch.mlls.sum_marginal_log_likelihood import SumMarginalLogLikelihood
@@ -23,30 +23,30 @@ class GPR:
         if isinstance(train_x, np.ndarray):
             train_x, train_y = torch.tensor(train_x).float(), torch.tensor(train_y).float()
         self.initialize_model(train_x, train_y, noise_free)
-        
+
     def initialize_model(self, train_x, train_y, noise_free):
         models = []
         for i in range(train_y.shape[-1]):
             ## mean_module : ConstantMean, likelihood : GaussianLikelihood with inferred noise level
             if noise_free:
                 train_Yvar = torch.full_like(train_y[..., i : i + 1], 1e-3)
-                models.append(FixedNoiseGP(train_x, train_y[..., i : i + 1], train_Yvar=train_Yvar, 
+                models.append(FixedNoiseGP(train_x, train_y[..., i : i + 1], train_Yvar=train_Yvar,
                                             covar_module=gpytorch.kernels.ScaleKernel(
                                                                             gpytorch.kernels.RBFKernel(
                                                                                 ard_num_dims=train_x.shape[-1]))
                                                                                                         ))
             else:
-                models.append(SingleTaskGP(train_x, train_y[..., i : i + 1], 
+                models.append(SingleTaskGP(train_x, train_y[..., i : i + 1],
                                             covar_module=gpytorch.kernels.ScaleKernel(
                                                                             gpytorch.kernels.RBFKernel(
                                                                                 ard_num_dims=train_x.shape[-1]))
                                                                                                         ))
         self.model = ModelListGP(*models)
         self.mll = SumMarginalLogLikelihood(self.model.likelihood, self.model)
-    
+
     def fit(self):
-        fit_gpytorch_model(self.mll)
-        
+        fit_gpytorch_mll(self.mll)
+
     def predict(self, x, return_posterior=False, no_grad=True):
         if isinstance(x, np.ndarray):
             x = torch.tensor(at_least_2dim(x)).float()
@@ -61,18 +61,18 @@ class GPR:
             mean, var = posterior.mean, posterior.variance
             std = torch.sqrt(var)
             return mean, std
-      
+
 
 class MultitaskGPModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood):
         super().__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.MultitaskMean(
-            gpytorch.means.ConstantMean(), 
+            gpytorch.means.ConstantMean(),
             num_tasks=train_y.shape[-1]
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.RBFKernel(ard_num_dims=train_x.shape[-1]), 
-            num_tasks=train_y.shape[-1], 
+            gpytorch.kernels.RBFKernel(ard_num_dims=train_x.shape[-1]),
+            num_tasks=train_y.shape[-1],
             rank=1
         )
 
@@ -107,7 +107,7 @@ class MTGPR:
             if self.optimizer.param_groups[0]['lr'] < 1e-2:
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] = 1e-1
-    
+
     def predict(self, test_x):
         self.model.eval()
         self.likelihood.eval()
@@ -116,9 +116,3 @@ class MTGPR:
             mean = predictions.mean
             lower, upper = predictions.confidence_region()
             return mean, (upper-lower)/4
-
-
-
-
-
-

@@ -5,6 +5,9 @@ import rdkit.Chem.Descriptors
 import rdkit.Chem.Fragments
 from tqdm import tqdm
 
+from rdkit import RDLogger
+RDLogger.DisableLog('rdApp.warning')
+
 
 class MolFeatures:
     mol_rep = {
