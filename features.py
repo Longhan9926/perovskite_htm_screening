@@ -52,7 +52,9 @@ class MolFeatures:
         "has_Benzimidazole": lambda m: len(m.GetSubstructMatches(rdkit.Chem.MolFromSmiles("Cn1cnc2ccccc21"))),
         "has_Benzothiophene": lambda m: len(m.GetSubstructMatches(rdkit.Chem.MolFromSmiles("c1ccc2sccc2c1"))),
         "has_Naphthalene": lambda m: len(m.GetSubstructMatches(rdkit.Chem.MolFromSmiles("c1ccc2ccccc2c1"))),
-        "has_Biphenyl": lambda m: len(m.GetSubstructMatches(rdkit.Chem.MolFromSmiles("c1ccc(-c2ccccc2)cc1")))
+        "has_Biphenyl": lambda m: len(m.GetSubstructMatches(rdkit.Chem.MolFromSmiles("c1ccc(-c2ccccc2)cc1"))),
+        # add
+        "TPSA": lambda m: rdkit.Chem.Descriptors.TPSA(m),
     }
 
     def __init__(self, descriptor_list: list = None):
