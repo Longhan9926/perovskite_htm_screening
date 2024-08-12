@@ -53,8 +53,11 @@ class MolFeatures:
         "has_Benzothiophene": lambda m: len(m.GetSubstructMatches(rdkit.Chem.MolFromSmiles("c1ccc2sccc2c1"))),
         "has_Naphthalene": lambda m: len(m.GetSubstructMatches(rdkit.Chem.MolFromSmiles("c1ccc2ccccc2c1"))),
         "has_Biphenyl": lambda m: len(m.GetSubstructMatches(rdkit.Chem.MolFromSmiles("c1ccc(-c2ccccc2)cc1"))),
+        "has_Triphenylamine": lambda m: len(m.GetSubstructMatches(rdkit.Chem.MolFromSmiles("c1ccc(c(c1)Nc2ccccc2)c3ccccc3"))),
         # add
         "TPSA": lambda m: rdkit.Chem.Descriptors.TPSA(m),
+        "HBA": lambda m: rdkit.Chem.Lipinski.NumHAcceptors(m),
+        "HBD": lambda m: rdkit.Chem.Lipinski.NumHDonors(m),
     }
 
     def __init__(self, descriptor_list: list = None):
@@ -68,8 +71,12 @@ class MolFeatures:
             "ExactMolWt", "FpDensityMorgan3", "FractionCSP3",
             "MolLogP", "MolMR",
             "has_CN(C)C", "has_CNC", "has_C=NC", "has_Thiophene", "has_Pyrrole", "has_Benzimidazole",
-            "has_Benzothiophene", "has_Naphthalene", "has_Biphenyl"
+            "has_Benzothiophene", "has_Naphthalene", "has_Biphenyl",
+            "TPSA", "HBA", "HBD"
         ]
+        # for nm,fn in rdkit.Chem.Descriptors._descList:
+        #     self.mol_rep[nm] = fn
+        # default_list = self.mol_rep.keys()
         self.descriptor_list = default_list if descriptor_list is None else descriptor_list
 
     def __call__(self, mol_list: list):

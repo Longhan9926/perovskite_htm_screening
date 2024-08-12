@@ -28,7 +28,7 @@ def at_least_2d(x):
 def produce_mol_dataset(name: str = 'dataset', n_mol : int = 2000, rng = None):
     PROBLEMS = {'A263', 'A435', 'A439', 'A440', 'A485', 'A486', 'A518', 'A530', 'A546', 'A630', 'A688', 'A689', 'A690', 'A879', 'A1115'}
     LIMIT = 100000
-    
+
     if rng==None:
         rng = np.random.default_rng()
 
@@ -49,18 +49,18 @@ def produce_mol_dataset(name: str = 'dataset', n_mol : int = 2000, rng = None):
         n_chunks = int(len(samples)/LIMIT) + 1
     else:
         n_chunks = 1
-    
+
     mols = []
     data = {}
-    for i in range(n_chunks):   
+    for i in range(n_chunks):
         chunk = samples[i*LIMIT:(i+1)*LIMIT]
         mols = ReactionAB().run_combos(chunk)
 
-        keys = [a+b for a,b in chunk]	
+        keys = [a+b for a,b in chunk]
         data = dict(zip(keys, mols))
 
         np.save('./data/Mols/'+name+'_chunk'+str(i)+'.npy', data)
-        
+
         mols = []
         data = {}
 
@@ -71,7 +71,7 @@ def get_features(mols, samples, use_simulation_data=False):
         _, theos = TheoSimulation().labels_for_combos(samples)
         features = np.concatenate([features, theos], axis=-1)
     return features
-    
+
 
 def generate_trainset(path='./data/dataset.csv', use_simulation=False, objective='PCE', add_labels=None):
     df = pd.read_csv(path)
@@ -82,18 +82,18 @@ def generate_trainset(path='./data/dataset.csv', use_simulation=False, objective
     if len(targets.shape)<2:
         target = target[..., np.newaxis]
     samples = []
-    for ab in df['AB']: 
+    for ab in df['AB']:
         a, b = ab[1:-1].split(',')
         samples.append((a[1:-1], b[2:-1]))
-    
+
     reaction_engine = ReactionAB(file_name_a="Mol_Group_A.xlsx", file_name_b="Mol_Group_B.xlsx", data_dir_path='data')
     mols = reaction_engine.run_combos(samples)
     features = get_features(mols, samples=samples, use_simulation_data=use_simulation)
-    
+
     ### add purity
     purity = pd.read_excel('./data/ID-1-purity.xlsx')['purity (%)'].to_numpy()[:len(features)]
     features = np.concatenate((features, purity[..., np.newaxis]), axis=-1)
-    
+
 
     # Ignore samples with smaller than 0.2 PCE.
     ignore_samples_mask = targets[:, 0] > 0.2
@@ -103,10 +103,10 @@ def generate_trainset(path='./data/dataset.csv', use_simulation=False, objective
 
 
 
-#######################################################  PREPROCESSING #####################################################################################  
-    
+#######################################################  PREPROCESSING #####################################################################################
+
 def standardize_data(X, y):
-    x_scaler = StandardScaler(with_std=True, with_mean=True, copy=True).fit(X) 
+    x_scaler = StandardScaler(with_std=True, with_mean=True, copy=True).fit(X)
     y_scaler = StandardScaler(with_std=True, with_mean=True, copy=True).fit(y)
     scaled_x = torch.tensor(x_scaler.transform(X)).float()
     scaled_y = torch.tensor(y_scaler.transform(y)).float()
@@ -137,22 +137,24 @@ def leave_one_out_crossval(X, y, samples_composition, reject='both'):
 def plot_scatter(preds, targets, name='scatter_plot', save=False):
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     ax.plot(
-        [np.amin(targets),np.amax(targets)],
-        [np.amin(targets),np.amax(targets)], 
-        label=r"R$^2$: {0:0.3f}".format(r2_score(targets, preds)), 
-        c="red", 
+        [np.amin(targets) - 5,np.amax(targets) + 5],
+        [np.amin(targets) - 5,np.amax(targets) + 5],
+        label=r"R$^2$: {0:0.3f}".format(r2_score(targets, preds)),
+        c="red",
         linestyle='--',
     )
-    ax.scatter(preds, targets, alpha=0.65, c="royalblue", s=80)   
-    ax.legend(loc="upper left", fontsize=14)
-    ax.set_xlabel("Predicted", fontsize=18)
-    ax.set_ylabel("True", fontsize=18)
-    plt.title(f"PCE [%]", fontsize=18)
+    ax.scatter(preds, targets, alpha=0.5, s=80)
+    # ax.legend(loc="upper left", fontsize=14)
+    print(r2_score(targets, preds))
+    ax.set_xlabel("Predicted", fontsize=14)
+    ax.set_ylabel("True", fontsize=14)
+    plt.title(f"PCE [%] R$^2$: {r2_score(targets, preds):0.3f}", fontsize=14)
+    plt.xlim(0, 25)
+    plt.ylim(0, 25)
     plt.grid()
     plt.tight_layout()
     if save:
         plt.savefig(f"{name}.png", bbox_inches = 'tight', pad_inches=0.1)
     else:
-        plt.show()  
-    plt.close() 
-
+        plt.show()
+    plt.close()

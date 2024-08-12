@@ -10,23 +10,24 @@ from utils import generate_trainset, standardize_data
 
 
 DATA_PATH = './data/dataset.csv'
-features = ["C count", "N count", "O count", "H count", "S count", 
-            "F count", "Cl count", "atoms count", "atoms in ring", 
-            "aromatic atoms count", "bonds count", "conjugated bonds count", 
-            "aromatic bonds count", "rotatable bonds count", "carbonyl O (excl. COOH) count", 
-            "exact molecular weight", "Morgan FP density", "fraction of SP3 C", "log P", 
-            "molar refractivity", "has tertiary amine", "has secondary amine", "has imine", 
-            "has thiophene", "has pyrrole", "has benzimidazole", "has benzothiophene", 
-            "has naphthalene", "has biphenyl", "dipole", "homo level", "lumo level", 
-            "homo/lumo gap", "total energy", "rotation constant a", "rotation constant b", 
+features = ["C count", "N count", "O count", "H count", "S count",
+            "F count", "Cl count", "atoms count", "atoms in ring",
+            "aromatic atoms count", "bonds count", "conjugated bonds count",
+            "aromatic bonds count", "rotatable bonds count", "carbonyl O (excl. COOH) count",
+            "exact molecular weight", "Morgan FP density", "fraction of SP3 C", "log P",
+            "molar refractivity", "has tertiary amine", "has secondary amine", "has imine",
+            "has thiophene", "has pyrrole", "has benzimidazole", "has benzothiophene",
+            "has naphthalene", "has biphenyl", "TPSA", "HBA", "HBD",
+            "dipole", "homo level", "lumo level",
+            "homo/lumo gap", "total energy", "rotation constant a", "rotation constant b",
             "rotation constant c", 'purity']
 
 print('Generating trainset...')
 X, y, samples_composition = generate_trainset(path=DATA_PATH, use_simulation=True, objective='PCE')
 
 ### ELIMINATE FEATURES THAT HAVE A SINGLE VALUES (constant) OR VERY NARROW DISTRIBUTIONS (spiked) ON THE TRAIN SET
-####spiked = ['F', "O", 'S', "fr_C_O_noCOO", "has_Benzimidazole", "has_Benzothiophene", "has_Naphthalene", "has_Thiophene"]  
-####constant = ['Cl', "has_C=NC", "has_CNC", "has_Pyrrole"] 
+####spiked = ['F', "O", 'S', "fr_C_O_noCOO", "has_Benzimidazole", "has_Benzothiophene", "has_Naphthalene", "has_Thiophene"]
+####constant = ['Cl', "has_C=NC", "has_CNC", "has_Pyrrole"]
 SPIKED = [5, 2, 4, 14, 25, 26, 27, 23]
 CONSTANT = [6, 21, 22, 24]
 NOT_GOOD = sorted(CONSTANT+SPIKED)
@@ -53,7 +54,7 @@ for _ in range(1000):
     matrix = reg.get_M()
     matrices.append(matrix/matrix.sum())
     M = np.diag(reg.get_M())
-    importances.append(M / M.sum())        
+    importances.append(M / M.sum())
     temp_preds = y_scaler.inverse_transform(reg.predict(xtest)).ravel()
     preds.append(temp_preds)
     ground.append(ytest.ravel())
@@ -73,10 +74,14 @@ matrix = matrix/tot
 importance = importance/tot
 feature_imp = pd.Series(importance, index=feat_order).sort_values(ascending=False)
 
-plt.rcParams["figure.figsize"] = (10, 9)
-ax = sns.barplot(x=feature_imp, y=feature_imp.index, color='royalblue', alpha=.7, edgecolor='black')
-ax.tick_params(axis='y', labelsize=18)
-ax.tick_params(axis='x', labelsize=18)
-plt.tight_layout()
+# plt.rcParams["figure.figsize"] = (10, 9)
+# ax = sns.barplot(x=feature_imp, y=feature_imp.index, alpha=.5)
+# ax.tick_params(axis='y', labelsize=18)
+# ax.tick_params(axis='x', labelsize=18)
+# plt.tight_layout()
+# plt.show()
+# plt.close()
+
+plt.imshow(M)
 plt.show()
 plt.close()
